@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lesezeichen-Werkstatt</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<header><div class="brand"><span class="logo">▥</span> Lesezeichen<span class="muted"> / Werkstatt</span></div><span class="local">● Alles bleibt lokal</span></header>
+<main>
+<div class="intro"><div class="eyebrow">EIN PLATZ FÜR DEINE FUNDSTÜCKE</div><h1>Weniger Chaos.<br>Mehr Wiederfinden.</h1><p>Sammlungen zusammenführen, doppelte Links aufspüren<br class="desktop"> und deinen Lesezeichen ein Zuhause geben.</p></div>
+<section id="dropzone" class="dropzone" aria-label="Dateien importieren"><div class="import-icon">↥</div><div><h2>Deine Sammlung beginnt hier</h2><p>HTML aus Firefox, Chrome, Brave oder Chromium sowie Firefox-JSON hierher ziehen. Auch gemischt.</p><small>Ordner und vorhandene Tags werden übernommen · kein Upload</small></div><button class="primary" id="import">Dateien auswählen <span>＋</span></button><input id="files" type="file" accept=".html,.htm,.json" multiple hidden></section>
+<div class="stats"><div><span id="count">0</span> Lesezeichen</div><div><span id="folders-count">0</span> Ordner</div><div><span id="duplicates-count">0</span> überzählige Duplikate</div><div><span id="sources-count">0</span> Quelldateien</div></div>
+<section class="workspace"><aside><div class="section-label">DEINE SAMMLUNG</div><button id="all" class="nav active">▥ <span>Alle Lesezeichen</span></button><button id="duplicates" class="nav">⧉ <span>Duplikate prüfen</span></button><div class="section-label folder-heading">ORDNER <button id="new-folder" aria-label="Ordner anlegen">＋</button></div><button id="remove-empty-folders" disabled title="Entfernt alle Ordner ohne Lesezeichen, auch leere Unterordner. Unabhängig von Suche und Ansicht.">Leere Ordner entfernen</button><div id="folder-list"></div></aside>
+<div class="content"><div class="content-heading"><div><h2 id="view-title">Alle Lesezeichen</h2><p id="view-description">Deine Sammlungen, übersichtlich an einem Ort.</p></div><div class="actions"><button id="undo" disabled>↶ Rückgängig</button><button id="export">Exportieren ↗</button></div></div>
+<div class="toolbar"><input id="search" type="search" placeholder="Titel, URL, Ordner oder Tags suchen …" aria-label="Lesezeichen suchen"><select id="sort" aria-label="Sortierung"><option value="title">Titel A–Z</option><option value="domain">Nach Website</option><option value="folder">Nach Ordner</option><option value="source">Nach Quelldatei</option></select></div>
+<div id="duplicate-options" hidden><label><input id="relaxed" type="checkbox"> Auch ähnliche URLs erkennen (ohne Fragment und bekannte Tracking-Parameter)</label><p>Die erste importierte Version bleibt erhalten. Prüfe ähnliche URLs vor dem Entfernen.</p><button id="dedupe">Überzählige Duplikate auswählen</button></div>
+<div id="bulk" class="bulk"><label><input id="select-all" type="checkbox"> Sichtbare auswählen</label><span id="selected-count">0 ausgewählt</span><button id="move" disabled>Verschieben</button><button id="delete" disabled>Entfernen</button></div>
+<div id="list"></div><div id="pagination" class="pagination"></div></div></section>
+<footer><span>Nur für diese Sitzung gespeichert · vor dem Schließen exportieren.</span><span>HTML rein. Ordnung raus.</span></footer>
+<div id="status" role="status" aria-live="polite"></div>
+</main>
+<dialog id="edit-dialog"><form id="edit-form"><h2>Lesezeichen bearbeiten</h2><label>Titel<input name="title" required></label><label>URL<input name="url" required></label><label>Ordner (mit / für Unterordner)<input name="folder" list="folder-suggestions"></label><label>Tags (durch Komma getrennt)<input name="tags"></label><div class="actions"><button type="button" data-close>Abbrechen</button><button class="primary">Speichern</button></div></form></dialog>
+<dialog id="folder-dialog"><form id="folder-form"><h2 id="folder-dialog-title">In Ordner verschieben</h2><label>Ordnerpfad<input name="folder" list="folder-suggestions" placeholder="z. B. Wissen / Entwicklung"></label><p>Ein leerer Pfad steht für die oberste Ebene.</p><div class="actions"><button type="button" data-close>Abbrechen</button><button class="primary">Übernehmen</button></div></form></dialog>
+<dialog id="export-dialog"><h2>Sammlung exportieren</h2><p>Exportiert alle Lesezeichen und Ordner, unabhängig vom Filter.</p><button id="export-html" class="primary">HTML für Firefox, Chrome, Brave & Chromium</button><button id="export-json">JSON als Werkstatt-Sicherung</button><p><small>Die JSON-Sicherung lässt sich hier wieder öffnen. Zum Import in Firefox nutze HTML.</small></p><button data-close>Schließen</button></dialog>
+<datalist id="folder-suggestions"></datalist>
+<script src="core.js"></script><script src="app.js"></script>
+</body></html>

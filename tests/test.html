@@ -1,0 +1,49 @@
+<!doctype html><meta charset="utf-8"><title>Tests</title><pre id="results">RUNNING</pre><script src="../core.js"></script><script>
+const results=[];let failures=0;
+function test(name,fn){try{fn();results.push('PASS '+name);}catch(e){failures++;results.push('FAIL '+name+': '+e.message);}}
+function canonical(x){return Array.isArray(x)?x.map(canonical):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,canonical(x[k])])):x;}
+function eq(a,b){if(JSON.stringify(canonical(a))!==JSON.stringify(canonical(b)))throw Error(JSON.stringify(a)+' != '+JSON.stringify(b));}
+const html='<!DOCTYPE NETSCAPE-Bookmark-file-1><H1>Bookmarks</H1><DL><p><DT><H3>Arbeit &amp; Wissen</H3><DL><p><DT><A HREF="https://a.test/?a=1&amp;b=2" TAGS="web,lesen" ADD_DATE="1700000000">A &amp; B</A><DT><H3>Unterordner</H3><DL><p><DT><A HREF="https://b.test">B</A></DL><p><DT><A HREF="https://c.test">C</A></DL><p><DT><A HREF="https://root.test">Root</A><DT><H3>Leer</H3><DL><p></DL><p></DL><p>';
+let parsed;
+test('HTML: verschachtelte Ordner, Geschwister und Wurzel',()=>{parsed=Bookmarks.parseHTML(html,'a.html');eq(parsed.bookmarks.map(b=>b.folder),[['Arbeit & Wissen'],['Arbeit & Wissen','Unterordner'],['Arbeit & Wissen'],[]]);eq(parsed.bookmarks[0].url,'https://a.test/?a=1&b=2');eq(parsed.bookmarks[0].tags,['web','lesen']);});
+test('HTML: Export und Reimport erhalten Daten und leere Ordner',()=>{const round=Bookmarks.parseHTML(Bookmarks.exportHTML(parsed.bookmarks,parsed.folders),'a.html');const sorted=x=>x.slice().sort((a,b)=>a.url.localeCompare(b.url));eq(sorted(round.bookmarks),sorted(parsed.bookmarks));eq(Bookmarks.allFolders(round.bookmarks,round.folders),Bookmarks.allFolders(parsed.bookmarks,parsed.folders));});
+test('Firefox JSON: Stamm, Ordner, Tags und Separatoren',()=>{const result=Bookmarks.parseJSON(JSON.stringify({guid:'root________',title:'',children:[{root:'toolbarFolder',title:'Symbolleiste',children:[{uri:'https://a.test',title:'A',dateAdded:1700000000000000},{type:'text/x-moz-place-separator'},{title:'Leer',children:[]}]},{root:'tagsFolder',children:[{title:'Lesen',children:[{uri:'https://a.test'}]}]}]}),'b.json');eq(result.bookmarks.length,1);eq(result.bookmarks[0].folder,['Symbolleiste']);eq(result.bookmarks[0].tags,['Lesen']);eq(result.folders,[['Symbolleiste'],['Symbolleiste','Leer']]);});
+test('Werkstatt-Sicherung: Roundtrip',()=>{const p=Bookmarks.parseJSON(JSON.stringify({format:'bookmark-workshop',version:1,...parsed}),'a.html');eq(p,parsed);});
+test('Exaktmodus bewahrt Fragmente, HTTP und Query-Unterschiede',()=>{const urls=['https://a.test','https://a.test','http://a.test','https://a.test#x','https://a.test?q=1'];eq(Bookmarks.duplicateGroups(urls.map(url=>({url}))).map(g=>g.length),[2]);});
+test('Ähnliche URLs: nur Tracking und Fragment ignorieren',()=>{eq(Bookmarks.urlKey('https://a.test/?utm_source=x&q=1#abc',true),'https://a.test/?q=1');eq(Bookmarks.duplicateGroups([{url:'https://a.test/?q=1'},{url:'https://a.test/?q=2'}],true),[]);});
+test('Unbekannte JSON-Formate werden abgelehnt',()=>{let threw=false;try{Bookmarks.parseJSON('{"hello":123}','bad');}catch{threw=true;}eq(threw,true);});
+test('Export escaped Markup und URL-Attribute',()=>{const p=Bookmarks.parseHTML(Bookmarks.exportHTML([{url:'https://a.test/" onclick="bad',title:'<script>bad<\/script>',folder:['<b>'],tags:['a"b'],added:null}],[]),'x');eq(p.bookmarks[0].title,'<script>bad<\/script>');eq(p.bookmarks[0].folder,['<b>']);eq(p.bookmarks[0].url,'https://a.test/" onclick="bad');});
+test('Chromium-HTML: Lesezeichenleiste, Attribute und Unterordner',()=>{
+  const chromium=`<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<!-- This is an automatically generated file. -->
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE><H1>Bookmarks</H1>
+<DL><p>
+  <DT><H3 ADD_DATE="1700000000" LAST_MODIFIED="1700000001" PERSONAL_TOOLBAR_FOLDER="true">Bookmarks bar</H3>
+  <DL><p>
+    <DT><A HREF="https://a.test/?a=1&amp;b=2" ADD_DATE="1700000000" ICON="data:image/png;base64,">Chrome &amp; Brave</A>
+    <DT><H3 ADD_DATE="1700000000">Recherche</H3>
+    <DL><p><DT><A HREF="https://chromium.test/">Chromium</A></DL><p>
+  </DL><p>
+  <DT><H3>Other bookmarks</H3><DL><p><DT><A HREF="https://other.test/">Anderer Link</A></DL><p>
+</DL><p>`;
+  const result=Bookmarks.parseHTML(chromium,'chromium.html');
+  eq(result.bookmarks.map(b=>b.folder),[['Bookmarks bar'],['Bookmarks bar','Recherche'],['Other bookmarks']]);
+  eq(result.bookmarks[0].title,'Chrome & Brave');
+  eq(result.bookmarks[0].added,1700000000000000);
+  const firefox=Bookmarks.parseJSON(JSON.stringify({children:[{uri:'https://chromium.test/',title:'Firefox'}]}),'firefox.json');
+  const combined=[...parsed.bookmarks,...result.bookmarks,...firefox.bookmarks];
+  eq(Bookmarks.duplicateGroups(combined).map(g=>g.length),[2,2]);
+  const exported=Bookmarks.parseHTML(Bookmarks.exportHTML(combined,[...parsed.folders,...result.folders]),'combined.html');
+  eq(exported.bookmarks.length,8);
+  eq(Bookmarks.duplicateGroups(exported.bookmarks).map(g=>g.length).sort(),[2,2]);
+});
+test('Leere Ordner: verschachtelte Zweige, belegte Eltern und eindeutige Pfade',()=>{
+  const bookmarks=[{folder:['Belegt','Kind']},{folder:['A / B']},{folder:[]}];
+  const folders=[['Leer','Kind'],['Leer','Kind'],['Belegt','Leer'],['A','B']];
+  eq(Bookmarks.emptyFolders(bookmarks,folders),[['A'],['A','B'],['Belegt','Leer'],['Leer'],['Leer','Kind']]);
+  eq(Bookmarks.emptyFolders([], [['Leer','Kind']]),[['Leer'],['Leer','Kind']]);
+  eq(Bookmarks.emptyFolders(bookmarks,[]),[]);
+});
+document.getElementById('results').textContent=results.join('\n')+'\n'+(failures?'FAILED '+failures:'ALL PASSED');document.title=failures?'FAILED':'PASSED';
+</script>

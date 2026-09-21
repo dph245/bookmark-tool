@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>RUNNING</title><pre id="result">RUNNING</pre><iframe src="../index.html"></iframe><script>
+document.querySelector('iframe').onload=async function(){
+const w=this.contentWindow,d=w.document,logs=[];
+function check(ok,name){if(!ok)throw Error(name);logs.push('PASS '+name);}
+try{
+await w.importFiles([new File(['<DL><DT><H3>Arbeit</H3><DL><DT><A HREF="https://example.com">Beispiel</A><DT><A HREF="https://example.com">Doppelt</A></DL></DL>'],'a.html'),new File([JSON.stringify({children:[{title:'Wissen',children:[{title:'Mozilla',uri:'https://mozilla.org'}]}]})],'b.json')]);
+check(d.getElementById('count').textContent==='3','Mehrfachimport');
+check(d.querySelectorAll('.row').length===3,'Liste gerendert');
+d.getElementById('duplicates').click();check(d.querySelectorAll('.row').length===2,'Duplikatansicht');
+d.getElementById('dedupe').click();check(d.getElementById('selected-count').textContent==='1 ausgewählt','Überzählige Auswahl');
+d.getElementById('delete').click();check(d.getElementById('count').textContent==='2','Duplikate entfernen');
+d.getElementById('undo').click();check(d.getElementById('count').textContent==='3','Rückgängig');
+d.getElementById('all').click();const search=d.getElementById('search');search.value='Mozilla';search.dispatchEvent(new Event('input'));check(d.querySelectorAll('.row').length===1,'Suche');
+d.getElementById('select-all').click();d.getElementById('move').click();const form=d.getElementById('folder-form');form.elements.folder.value='Neu / Lesen';form.dispatchEvent(new Event('submit',{cancelable:true}));check(w.visible()[0].folder.join('/')==='Neu/Lesen','Sammelverschieben');
+d.querySelector('[data-edit]').click();const edit=d.getElementById('edit-form');edit.elements.title.value='Geändert';edit.dispatchEvent(new Event('submit',{cancelable:true}));check(w.visible()[0].title==='Geändert','Bearbeiten');
+await w.importFiles([new File([JSON.stringify({format:'bookmark-workshop',version:1,bookmarks:[],folders:[['Leer','Unterordner'],['Neu','Leer']]})],'empty.json')]);
+const folderNames=()=>Array.from(d.querySelectorAll('#folder-list button'),b=>b.textContent);
+const beforeFolders=folderNames();
+Array.from(d.querySelectorAll('#folder-list button')).find(b=>b.textContent==='▱ Leer').click();
+search.value='keine Treffer';search.dispatchEvent(new Event('input'));
+d.getElementById('remove-empty-folders').click();
+check(JSON.stringify(folderNames())===JSON.stringify(['▱ Arbeit','▱ Neu','▱ Neu / Lesen']),'Leere Zweige entfernt, belegte Ordner trotz Suchfilter erhalten');
+check(d.getElementById('view-title').textContent==='Alle Lesezeichen','Gelöschten Ordner verlassen');
+check(d.getElementById('count').textContent==='3','Lesezeichen bleiben erhalten');
+check(d.getElementById('remove-empty-folders').disabled,'Ohne leere Ordner ist Aufräumen deaktiviert');
+d.getElementById('undo').click();
+check(JSON.stringify(folderNames())===JSON.stringify(beforeFolders),'Leere Ordner vollständig wiederhergestellt');
+check(!d.getElementById('remove-empty-folders').disabled,'Aufräumen nach Rückgängig erneut möglich');
+d.getElementById('export').click();check(d.getElementById('export-dialog').open,'Exportdialog');
+d.title='UI PASSED';document.title='PASSED';document.getElementById('result').textContent=logs.join('\n')+'\nALL PASSED';
+}catch(e){document.title='FAILED';document.getElementById('result').textContent=logs.join('\n')+'\nFAIL '+e.stack;}
+};
+</script>
